@@ -432,7 +432,7 @@ button {
 /** banner section **/
 
 .full_bg {
-    background: url(../images/background4.png);
+    background: url(/images/background4.png);
     background-repeat: repeat-y;
 
 }

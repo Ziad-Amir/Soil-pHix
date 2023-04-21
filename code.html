@@ -79,110 +79,110 @@
             </div>
             <div class="WebsiteCode">
                <pre><code> 
-                  #include &lt;math.h&gt;
+#include &lt;math.h&gt;
 
-                  #define SensorPin A1
-                  #define Offset -0.3
-                  #define LED 13
-                  #define samplingInterval 20
-                  #define printInterval 800
-                  #define ArrayLength 20
-                  #define CO2ReadInterval 1000
-                  #define CO2_SAMPLE_COUNT 60 // 15 minutes * 4 samples per minute
-                  #define CO2_STANDARD_AVG 40000 // According to a study published in the Journal of Environmental Science and Health, the CO2 concentration in soil respiration
-                  // of common bean (Phaseolus vulgaris L.) with an average of 1.3 percent.
+#define SensorPin A1
+#define Offset -0.3
+#define LED 13
+#define samplingInterval 20
+#define printInterval 800
+#define ArrayLength 20
+#define CO2ReadInterval 1000
+#define CO2_SAMPLE_COUNT 60 // 15 minutes * 4 samples per minute
+#define CO2_STANDARD_AVG 40000 // According to a study published in the Journal of Environmental Science and Health, the CO2 concentration in soil respiration
+// of common bean (Phaseolus vulgaris L.) with an average of 1.3 percent.
 
-                  const unsigned long SoilInteractionTimeForGlucose = 15000;//5 * 60 * 60 * 1000; //Five hours the delay for the soil after glucose seceration
-                  const unsigned long SoilInteractionTime = 3000;//1 * 60 * 60 * 1000; //One our the delay for the soil after the sulphate or lime seceration
-                  const unsigned long FlowRate = 5.59; //The flowrate of the pump is 5.59 mL/S, or 20.12 L/H
-                  const unsigned long NeutralizingAgentForLime = 0.0389; //this is the Constant value we got from the relation pH in lime = C*V (3.89*10^-2)
-                  const unsigned long NeutralizingAgentForSulphate = 0.125; //this is the Constant value we got from the relation in sulphate pH = C*V (1.25*10^-1)
-                  const unsigned long glucosePumpTime = 30400; 
-                  /* For each 1 g of the soil, it should obtain 35mg of glucose, As SOIL MASS is 7600 g, So, desired glucose mass is 266 g, density of the glucose is 1.56 g/cm^-3
-                  then the volume desired of glucose for the soil is 170 mL, As the flow rate of the pump is 5.59 mL/S, the glucose pump time is (V/Q) V for Volume desired, Q for flowrate
-                  So the pump Time is equal to (170/5.59) = 30.4 S
-                  */
+const unsigned long SoilInteractionTimeForGlucose = 15000;//5 * 60 * 60 * 1000; //Five hours the delay for the soil after glucose seceration
+const unsigned long SoilInteractionTime = 3000;//1 * 60 * 60 * 1000; //One our the delay for the soil after the sulphate or lime seceration
+const unsigned long FlowRate = 5.59; //The flowrate of the pump is 5.59 mL/S, or 20.12 L/H
+const unsigned long NeutralizingAgentForLime = 0.0389; //this is the Constant value we got from the relation pH in lime = C*V (3.89*10^-2)
+const unsigned long NeutralizingAgentForSulphate = 0.125; //this is the Constant value we got from the relation in sulphate pH = C*V (1.25*10^-1)
+const unsigned long glucosePumpTime = 30400; 
+/* For each 1 g of the soil, it should obtain 35mg of glucose, As SOIL MASS is 7600 g, So, desired glucose mass is 266 g, density of the glucose is 1.56 g/cm^-3
+then the volume desired of glucose for the soil is 170 mL, As the flow rate of the pump is 5.59 mL/S, the glucose pump time is (V/Q) V for Volume desired, Q for flowrate
+So the pump Time is equal to (170/5.59) = 30.4 S
+*/
 
-                  const float pHStandardLevel = 6.5;
-                  const float PH_LOW = 6;
-                  const float PH_HIGH = 7.5;
-                  
-                  float sensorValue;
-                  float CO2Voltage;
-                  float ppm;
-                  float avgCO2;
-                  float newPHValue;
-                  float pHValue;
-                  float pHIndicator;
-                  float SecerationVolume;
-                  float pHdesired;
-                  float pumpTime;
+const float pHStandardLevel = 6.5;
+const float PH_LOW = 6;
+const float PH_HIGH = 7.5;
 
-                  int pHArray[ArrayLength];
-                  int pHArrayIndex = 0;
-                  int pumpGlucose = 3;  
-                  int pumpLime = 4;   
-                  int pumpSulphate = 5;   
+float sensorValue;
+float CO2Voltage;
+float ppm;
+float avgCO2;
+float newPHValue;
+float pHValue;
+float pHIndicator;
+float SecerationVolume;
+float pHdesired;
+float pumpTime;
 
-                  void SulphatePumpTime(){
-                   pHdesired = pHStandardLevel - pHIndicator; // to get the exact change in the pH that we will fix
-                   SecerationVolume = pHdesired / NeutralizingAgentForSulphate;
-                   /* Because the pH desired is directly proportional with the SecerationVolume, So, pH desired = Constant (C) "which is Neutralizing Agent" * SecerationVolume
-                   From our experiments, C = 0.125, So, the Seceration volume is pHdesired/C "NeutralizingAgentForSulphate" */
-                   pumpTime = SecerationVolume / FlowRate; // From the relation of T = V / Q as T is the time, V is the volume, Q is the flow rate
-                   return pumpTime;
-                }
+int pHArray[ArrayLength];
+int pHArrayIndex = 0;
+int pumpGlucose = 3;  
+int pumpLime = 4;   
+int pumpSulphate = 5;   
 
-                void LimePumpTime(){
-                   pHdesired = pHIndicator - pHStandardLevel; // to get the exact change in the pH that we will fix, we changed the pHindicator with the pHstandard place to return positive value
-                   SecerationVolume = pHdesired / NeutralizingAgentForLime;
-                   /* Because the pH desired is directly proportional with the SecerationVolume, So, pH desired = Constant (C) "which is Neutralizing Agent" * SecerationVolume
-                   From our experiments, C = 0.0389, So, the Seceration volume is pHdesired/C "NeutralizingAgentForLime" */
-                   pumpTime = SecerationVolume / FlowRate; // From the relation of T = V / Q as T is the time, V is the volume, Q is the flow rate
-                   return pumpTime;
-                }
+void SulphatePumpTime(){
+pHdesired = pHStandardLevel - pHIndicator; // to get the exact change in the pH that we will fix
+SecerationVolume = pHdesired / NeutralizingAgentForSulphate;
+/* Because the pH desired is directly proportional with the SecerationVolume, So, pH desired = Constant (C) "which is Neutralizing Agent" * SecerationVolume
+From our experiments, C = 0.125, So, the Seceration volume is pHdesired/C "NeutralizingAgentForSulphate" */
+pumpTime = SecerationVolume / FlowRate; // From the relation of T = V / Q as T is the time, V is the volume, Q is the flow rate
+return pumpTime;
+}
+
+void LimePumpTime(){
+pHdesired = pHIndicator - pHStandardLevel; // to get the exact change in the pH that we will fix, we changed the pHindicator with the pHstandard place to return positive value
+SecerationVolume = pHdesired / NeutralizingAgentForLime;
+/* Because the pH desired is directly proportional with the SecerationVolume, So, pH desired = Constant (C) "which is Neutralizing Agent" * SecerationVolume
+From our experiments, C = 0.0389, So, the Seceration volume is pHdesired/C "NeutralizingAgentForLime" */
+pumpTime = SecerationVolume / FlowRate; // From the relation of T = V / Q as T is the time, V is the volume, Q is the flow rate
+return pumpTime;
+}
 
 
-                void runPHsensorForTime(unsigned long TimeToRun) {
-                   unsigned long startTime = millis();
-                   while (millis() - startTime < TimeToRun){
-                    float pHValue = checkpH(); 
-                 } 
-              }
+void runPHsensorForTime(unsigned long TimeToRun) {
+unsigned long startTime = millis();
+while (millis() - startTime < TimeToRun){
+float pHValue = checkpH(); 
+   } 
+}
 
-              double averageArray(int* arr, int number) {
-                int i;
-                int max, min;
-                double avg;
-                long amount = 0;
-                if (number <= 0) {
-                 Serial.println("Error number for the array to averaging!\n");
-                 return 0;
-              }
-              if (number < 5) {
-                 for (i = 0; i < number; i++) {
-                  amount += arr[i];
-               }
-               avg = amount / number;
-               return avg;
-            } else {
-              if (arr[0] < arr[1]) {
-               min = arr[0];
-               max = arr[1];
-            } else {
-               min = arr[1];
-               max = arr[0];
-            }
-            for (i = 2; i < number; i++) {
-               if (arr[i] < min) {
-                amount += min;
-                min = arr[i];
-             } else {
-                if (arr[i] > max) {
-                 amount += max;
-                 max = arr[i];
-              } else {
-                 amount += arr[i];
+double averageArray(int* arr, int number) {
+int i;
+int max, min;
+double avg;
+long amount = 0;
+if (number <= 0) {
+Serial.println("Error number for the array to averaging!\n");
+return 0;
+}
+if (number < 5) {
+for (i = 0; i < number; i++) {
+amount += arr[i];
+}
+avg = amount / number;
+return avg;
+} else {
+if (arr[0] < arr[1]) {
+min = arr[0];
+max = arr[1];
+} else {
+min = arr[1];
+max = arr[0];
+}
+for (i = 2; i < number; i++) {
+if (arr[i] < min) {
+amount += min;
+min = arr[i];
+} else {
+if (arr[i] > max) {
+amount += max;
+max = arr[i];
+} else {
+amount += arr[i];
               }
            }
         }
